@@ -1,79 +1,97 @@
 'use client'
 import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import TaskList from './components/TaskList';
 
 const task = {id: 1, text: "Todo Test", completed: false}
+const LOCAL_STORAGE_KEY = "task-list";
 
 export default function Home() {
-  const tasks = []; // rewrite using states
-  const filter = 'all'; // rewrite using states
+  const [state, setState] = useState(() => {
+    return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {
+      tasks: [],
+      filter: 'all',
+      new: '',
+      taskID: 1
+    };
+  });
 
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+  
   const handleAddTask = () => {
-    // Implement add task logic here
+    if (state.new) {
+      const newTask = {
+        text: state.new,
+        completed: false,
+        id: state.taskID
+      };
+
+      setState(prevState => ({
+        ...prevState,
+        tasks: [...prevState.tasks, newTask],
+        new: '', 
+        taskID: prevState.taskID + 1       //increment id
+      }));
+    }
   };
 
-  const handleToggleTask = () => {
-      // Implement toggle completed/uncompleted task logic here
+  const handleToggleTask = (id) => {
+    const toggleTasks = state.tasks.map(task =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+    setState({ ...state, tasks: toggleTasks });
   };
 
-  const handleDeleteTask = () => {
-      // Implement delete task logic here
+  const handleDeleteTask = (id) => {
+    const activeTasks = state.tasks.filter(task => task.id !== id);
+    setState({ ...state, tasks: activeTasks });
+  };
 
+  const itemsLeft = state.tasks.filter(task => !task.completed).length;
+
+  const handleCompletedTask = () => {
+    const activeTasks = state.tasks.filter(task => !task.completed);
+    setState({ ...state, tasks: activeTasks });
   };
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-4xl font-bold">TODO</h1>
-        
       </div>
       <div className="mb-4 flex items-center">
         <input
           type="text"
           className="bg-gray-800 text-white border-none rounded p-4 flex-grow"
           placeholder="What to do ?"
+          value={state.new}
+          onChange={(e) => setState({ ...state, new: e.target.value })}
         />
         <button
-          onClick={handleAddTask}
+          onClick = {handleAddTask}
           className="bg-blue-500 text-white p-4 rounded ml-4"
         >
           Add Task
         </button>
       </div>
       <div className="bg-gray-800 rounded p-4">
-        {/* Medium level: extract todo's listing to TaskList component */}
-        {/* Basic level: map through tasks state by using this code: */}
-        <ul>
-          <li className="flex justify-between items-center p-2 bg-gray-900 rounded mb-2">
-            <div className="flex items-center">
-              <button 
-              className="w-6 h-6 my-auto mr-6"
-              onClick={() => alert("Toggle the task status")} 
-              >
-                <Image
-                      src={task.completed ? "/images/circle-cheked.svg" : "/images/circle.svg"}
-                      alt="Task status"
-                      width={30}
-                      height={30}
-                />
-              </button>
-              <span className={`ml-2 ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.text}</span>
-            </div>
-            <button onClick={() => alert("Delete task")} className="text-gray-400 hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </li>
-        </ul>
+        <TaskList
+          tasks={state.tasks}
+          filter={state.filter}
+          toggleTask ={handleToggleTask}
+          deleteTask = {handleDeleteTask}
+        />
         <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
-          <span> 'n' items left</span>  {/* show how many uncompleted items left */}
+          <span>{itemsLeft} items left</span>
           <div>
-            <button onClick={() => alert("Show all")} className={`mr-2 ${filter === 'all' ? 'text-white' : ''}`}>All</button>
-            <button onClick={() => alert("Show active")} className={`mr-2 ${filter === 'active' ? 'text-white' : ''}`}>Active</button>
-            <button onClick={() => alert("Show completed")} className={`${filter === 'completed' ? 'text-white' : ''}`}>Completed</button>
+            <button onClick={() => setState({ ...state, filter: 'all' })} className={`mr-2 ${state.filter === 'all' ? 'text-white' : ''}`}>All</button>
+            <button onClick={() => setState({ ...state, filter: 'active' })} className={`mr-2 ${state.filter === 'active' ? 'text-white' : ''}`}>Active</button>
+            <button onClick={() => setState({ ...state, filter: 'completed' })} className={`${state.filter === 'completed' ? 'text-white' : ''}`}>Completed</button>
           </div>
           <button
-            onClick={() => alert("Clear completed tasks")}
+            onClick={handleCompletedTask}
             className="text-gray-400 hover:text-white"
           >
             Clear Completed
